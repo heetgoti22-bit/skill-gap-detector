@@ -579,3 +579,6 @@ def main():
     else:print(f"Unknown: {cmd}")
 
 if __name__=="__main__":main()
+
+# For Render deployment — expose the app at module level
+app = create_api()
