@@ -335,7 +335,9 @@ MIT — use it for your portfolio, modify it, learn from it.
 
 <div align="center">
 
-**Built as a portfolio project demonstrating end-to-end ML engineering.**
+**Built by [Heet Goti](https://github.com/heetgoti22-bit) — End-to-end ML engineering portfolio project**
+
+[GitHub](https://github.com/heetgoti22-bit) · [Live Dashboard](https://heetgoti22-bit.github.io/skill-gap-detector/) · [Live API](https://skill-gap-detector.onrender.com/docs)
 
 If this helped you, consider giving it a ⭐
 
