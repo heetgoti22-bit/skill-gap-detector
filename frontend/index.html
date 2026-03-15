@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill Gap Detector — AI Career Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#060612;color:#e8e8e8;overflow-x:hidden}
+input[type=text]{width:100%;padding:8px 12px;border:1px solid rgba(120,100,255,.2);border-radius:8px;background:rgba(15,15,30,.8);color:#e8e8e8;font-size:13px;outline:none;backdrop-filter:blur(4px)}
+input[type=text]:focus{border-color:rgba(120,100,255,.5);box-shadow:0 0 20px rgba(120,100,255,.1)}
+input[type=text]::placeholder{color:#555}
+button{font-family:inherit}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#060612}::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.6)}}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes scan{0%{top:-2px;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
+.sr{transition:all .2s;cursor:pointer;border-radius:8px}.sr:hover{background:rgba(120,100,255,.06)}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;transition:all .15s}
+.chip:hover{filter:brightness(.85)}
+.sug{padding:6px 10px;cursor:pointer;font-size:13px;transition:background .1s;border-radius:4px}.sug:hover{background:rgba(120,100,255,.1)}
+.glass{background:rgba(12,12,25,.6);backdrop-filter:blur(12px);border:1px solid rgba(120,100,255,.12)}
+.glass-card{background:rgba(15,15,35,.5);backdrop-filter:blur(8px);border:1px solid rgba(120,100,255,.1);border-radius:12px;padding:12px 14px}
+.glow-border{position:relative;overflow:hidden}.glow-border::before{content:'';position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;background:linear-gradient(45deg,transparent,rgba(120,100,255,.3),transparent,rgba(80,200,170,.3),transparent);background-size:400% 400%;animation:shimmer 4s linear infinite;border-radius:13px;z-index:-1}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef,useMemo}=React;
+const API_BASE = "https://skill-gap-detector.onrender.com";
+const e=React.createElement;
+
+const R={
+purple:{50:"rgba(120,100,255,.08)",100:"#CECBF6",200:"#AFA9EC",400:"#7F77DD",600:"#534AB7",800:"#CECBF6",900:"#EEEDFE"},
+teal:{50:"rgba(80,200,170,.08)",100:"#9FE1CB",200:"#5DCAA5",400:"#1D9E75",600:"#0F6E56",800:"#9FE1CB",900:"#E1F5EE"},
+coral:{50:"rgba(216,90,48,.08)",100:"#F5C4B3",200:"#F0997B",400:"#D85A30",600:"#993C1D",800:"#F5C4B3",900:"#FAECE7"},
+blue:{50:"rgba(55,138,221,.08)",100:"#B5D4F4",200:"#85B7EB",400:"#378ADD",600:"#185FA5",800:"#B5D4F4",900:"#E6F1FB"},
+red:{50:"rgba(226,75,74,.08)",100:"#F7C1C1",200:"#F09595",400:"#E24B4A",600:"#A32D2D",800:"#F7C1C1",900:"#FCEBEB"},
+amber:{50:"rgba(186,117,23,.08)",100:"#FAC775",200:"#EF9F27",400:"#BA7517",600:"#854F0B",800:"#FAC775",900:"#FAEEDA"},
+green:{50:"rgba(99,153,34,.08)",100:"#C0DD97",200:"#97C459",400:"#639922",600:"#3B6D11",800:"#C0DD97",900:"#EAF3DE"},
+pink:{50:"rgba(212,83,126,.08)",100:"#F4C0D1",200:"#ED93B1",400:"#D4537E",600:"#993556",800:"#F4C0D1",900:"#FBEAF0"},
+};
+
+const MO=["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar"];
+function gen(b,g,n=.08){const d=[b];for(let i=1;i<12;i++){d.push(Math.round(Math.max(10,b*(1+(g/100)*(i/11))*(1+(Math.random()-.5)*n))));}return d;}
+
+const DATA={
+"Software Engineering":{color:"purple",rising:[
+{skill:"AI Agent Frameworks",growth:94,demand:4500,salary:182,postings:gen(120,94),tags:["python","langchain","crewai"]},
+{skill:"LLM Fine-tuning",growth:89,demand:6800,salary:178,postings:gen(280,89),tags:["pytorch","huggingface","lora"]},
+{skill:"AI Safety",growth:67,demand:3200,salary:185,postings:gen(180,67),tags:["alignment","rlhf","red-teaming"]},
+{skill:"ML Ops",growth:42,demand:8400,salary:165,postings:gen(350,42),tags:["mlflow","kubeflow","docker"]},
+{skill:"Rust",growth:38,demand:5200,salary:158,postings:gen(220,38),tags:["systems","wasm","performance"]},
+{skill:"Platform Engineering",growth:35,demand:7100,salary:172,postings:gen(340,35),tags:["backstage","k8s","devex"]},
+{skill:"WebAssembly",growth:28,demand:2800,salary:152,postings:gen(150,28),tags:["wasm","edge","browser"]},
+{skill:"Edge AI / TinyML",growth:33,demand:2100,salary:160,postings:gen(110,33),tags:["iot","embedded","tensorflow-lite"]},
+],declining:[
+{skill:"jQuery",growth:-31,demand:1200,salary:95,postings:gen(400,-31)},{skill:"PHP (Legacy)",growth:-24,demand:2100,salary:98,postings:gen(520,-24)},
+{skill:"Manual QA",growth:-28,demand:1800,salary:72,postings:gen(450,-28)},{skill:"Perl",growth:-35,demand:600,salary:105,postings:gen(180,-35)},
+],emerging:[
+{skill:"AI Agent Orchestration",confidence:.94,eta:"3-6 mo",desc:"Multi-agent systems coordinating complex workflows"},
+{skill:"Multimodal ML",confidence:.87,eta:"6-12 mo",desc:"Unified vision + language + audio models"},
+{skill:"Confidential Computing",confidence:.74,eta:"12-18 mo",desc:"Hardware-level encryption for data in use"},
+]},
+"Data Science":{color:"teal",rising:[
+{skill:"Vector Databases",growth:82,demand:4100,salary:162,postings:gen(140,82),tags:["pinecone","weaviate"]},
+{skill:"RAG Systems",growth:76,demand:5400,salary:168,postings:gen(180,76),tags:["retrieval","embeddings"]},
+{skill:"Synthetic Data",growth:58,demand:2200,salary:165,postings:gen(90,58),tags:["privacy","generation"]},
+{skill:"dbt",growth:45,demand:4600,salary:142,postings:gen(200,45),tags:["sql","analytics"]},
+{skill:"Streaming Analytics",growth:37,demand:3300,salary:155,postings:gen(160,37),tags:["kafka","flink"]},
+{skill:"Feature Stores",growth:34,demand:3800,salary:155,postings:gen(180,34),tags:["feast","tecton"]},
+{skill:"Causal Inference",growth:29,demand:2900,salary:160,postings:gen(170,29),tags:["statistics","experimentation"]},
+],declining:[
+{skill:"Hadoop",growth:-38,demand:900,salary:118,postings:gen(350,-38)},{skill:"SAS",growth:-26,demand:1500,salary:108,postings:gen(380,-26)},
+{skill:"SPSS",growth:-32,demand:700,salary:92,postings:gen(210,-32)},
+],emerging:[
+{skill:"Graph RAG",confidence:.88,eta:"6-12 mo",desc:"Knowledge graph-enhanced retrieval"},
+{skill:"Federated Analytics",confidence:.69,eta:"18-24 mo",desc:"Privacy-preserving distributed analysis"},
+]},
+"Cybersecurity":{color:"coral",rising:[
+{skill:"AI Red Teaming",growth:63,demand:2100,salary:180,postings:gen(80,63),tags:["adversarial","llm-security"]},
+{skill:"AI Threat Detection",growth:54,demand:6200,salary:170,postings:gen(200,54),tags:["ml","siem"]},
+{skill:"Supply Chain Security",growth:52,demand:3400,salary:168,postings:gen(140,52),tags:["sbom","devsecops"]},
+{skill:"Cloud Security",growth:48,demand:5500,salary:162,postings:gen(190,48),tags:["cnapp","cspm"]},
+{skill:"Zero Trust",growth:41,demand:7800,salary:165,postings:gen(300,41),tags:["ztna","identity"]},
+{skill:"DevSecOps",growth:37,demand:6900,salary:158,postings:gen(280,37),tags:["ci-cd","sast"]},
+],declining:[
+{skill:"Password-only Auth",growth:-48,demand:200,salary:78,postings:gen(180,-48)},
+{skill:"Perimeter Security",growth:-42,demand:500,salary:105,postings:gen(300,-42)},
+],emerging:[
+{skill:"Post-quantum Crypto",confidence:.91,eta:"6-12 mo",desc:"Quantum-resistant encryption standards"},
+{skill:"Deepfake Detection",confidence:.83,eta:"6-12 mo",desc:"Identifying AI-generated media"},
+]},
+"Product & Design":{color:"pink",rising:[
+{skill:"Prompt Engineering (PM)",growth:72,demand:3600,salary:168,postings:gen(100,72),tags:["ai-native","prototyping"]},
+{skill:"AI-Assisted Design",growth:68,demand:3800,salary:148,postings:gen(110,68),tags:["figma-ai","generative"]},
+{skill:"AI Product Strategy",growth:61,demand:4800,salary:175,postings:gen(150,61),tags:["roadmap","ai-first"]},
+{skill:"Design Engineering",growth:44,demand:2200,salary:158,postings:gen(95,44),tags:["react","figma"]},
+{skill:"Design Systems",growth:32,demand:5400,salary:155,postings:gen(250,32),tags:["tokens","components"]},
+],declining:[
+{skill:"Static Mockups",growth:-33,demand:700,salary:88,postings:gen(260,-33)},
+{skill:"Waterfall PM",growth:-29,demand:1100,salary:110,postings:gen(280,-29)},
+],emerging:[
+{skill:"Generative UI Design",confidence:.89,eta:"6-12 mo",desc:"AI-generated production-ready UI components"},
+{skill:"Agentic Workflow Design",confidence:.84,eta:"12-18 mo",desc:"Designing human-AI collaborative workflows"},
+]},
+"Cloud & Infra":{color:"blue",rising:[
+{skill:"GPU Orchestration",growth:71,demand:5800,salary:180,postings:gen(120,71),tags:["nvidia","cuda"]},
+{skill:"FinOps",growth:53,demand:4100,salary:158,postings:gen(140,53),tags:["cost","optimization"]},
+{skill:"Platform Engineering",growth:46,demand:9200,salary:175,postings:gen(320,46),tags:["backstage","idp"]},
+{skill:"Edge Computing",growth:35,demand:3000,salary:165,postings:gen(140,35),tags:["cdn","iot"]},
+{skill:"K8s Operators",growth:31,demand:5600,salary:168,postings:gen(260,31),tags:["crd","controller"]},
+{skill:"IaC (Terraform+)",growth:25,demand:8900,salary:162,postings:gen(420,25),tags:["terraform","pulumi"]},
+],declining:[
+{skill:"Manual Provisioning",growth:-44,demand:400,salary:82,postings:gen(280,-44)},
+{skill:"Monolithic Deploy",growth:-31,demand:900,salary:95,postings:gen(320,-31)},
+],emerging:[
+{skill:"AI Infra (GPU Clusters)",confidence:.95,eta:"< 3 mo",desc:"Enterprise GPU orchestration for training"},
+{skill:"Green Cloud",confidence:.72,eta:"18-24 mo",desc:"Carbon-aware workload scheduling"},
+]},
+"DevOps & SRE":{color:"amber",rising:[
+{skill:"AIOps",growth:57,demand:4200,salary:168,postings:gen(130,57),tags:["ml","monitoring"]},
+{skill:"Internal Dev Portals",growth:52,demand:3100,salary:170,postings:gen(110,52),tags:["backstage","catalog"]},
+{skill:"Observability (OTel)",growth:46,demand:6300,salary:165,postings:gen(240,46),tags:["opentelemetry","traces"]},
+{skill:"GitOps",growth:41,demand:5100,salary:160,postings:gen(210,41),tags:["argocd","flux"]},
+{skill:"Chaos Engineering",growth:34,demand:2800,salary:172,postings:gen(140,34),tags:["litmus","gremlin"]},
+],declining:[
+{skill:"Manual Runbooks",growth:-38,demand:600,salary:85,postings:gen(240,-38)},
+{skill:"Siloed Monitoring",growth:-33,demand:800,salary:95,postings:gen(280,-33)},
+],emerging:[
+{skill:"Self-healing Systems",confidence:.82,eta:"12-18 mo",desc:"Automated incident detection and remediation"},
+{skill:"AI-powered CI/CD",confidence:.88,eta:"6-12 mo",desc:"ML-optimized build and deploy pipelines"},
+]},
+};
+
+const INSIGHTS={"Software Engineering":"AI Agent Frameworks (+94%) leads all skills. LLM Fine-tuning (+89%) follows as teams move past API wrappers. ML Ops is the bridge connecting everything.","Data Science":"Vector Databases (+82%) and RAG Systems (+76%) form the production AI data layer. Hadoop is terminal (-38%). Synthetic Data (+58%) is the sleeper.","Cybersecurity":"AI Red Teaming (+63%) exploded as companies rush to secure AI. Password-only auth declining fastest (-48%). Post-quantum crypto at 91% confidence.","Product & Design":"Prompt Engineering for PMs (+72%) — product managers now prototype with AI. AI-Assisted Design (+68%) is rebuilding the toolkit.","Cloud & Infra":"GPU Orchestration (+71%) leads. Platform Engineering has highest demand (9,200 jobs). AI Infra at 95% is the strongest emerging signal.","DevOps & SRE":"AIOps (+57%) and Internal Dev Portals (+52%) merge into AI-assisted platform engineering. Manual runbooks (-38%) automated by AI."};
+const COURSES={"AI Agent Frameworks":["AI Agents in LangGraph (DeepLearning.AI)"],"LLM Fine-tuning":["Fine-tuning LLMs (DeepLearning.AI)","Training LLMs (Hugging Face)"],"ML Ops":["MLOps Specialization (Coursera/Duke)"],"Vector Databases":["Vector DBs (DeepLearning.AI)"],"RAG Systems":["Building RAG Agents (DeepLearning.AI)"],"Rust":["The Rust Book (free)"],"dbt":["dbt Fundamentals (free)"]};
+
+// === NEURAL NETWORK BACKGROUND ===
+function NeuralBg({accentColor}){
+  const ref=useRef();
+  useEffect(()=>{
+    const cv=ref.current;if(!cv)return;const ctx=cv.getContext("2d");
+    let w,h,raf;
+    const nodes=[];const pulses=[];
+    const resize=()=>{w=cv.width=window.innerWidth;h=cv.height=window.innerHeight;nodes.length=0;
+      const cols=Math.floor(w/90);const rows=Math.floor(h/90);
+      for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){
+        nodes.push({x:45+i*90+(Math.random()-.5)*30,y:45+j*90+(Math.random()-.5)*30,
+          bx:45+i*90+(Math.random()-.5)*30,by:45+j*90+(Math.random()-.5)*30,
+          vx:(Math.random()-.5)*.15,vy:(Math.random()-.5)*.15,
+          r:1.5+Math.random()*1.5,phase:Math.random()*Math.PI*2,speed:.003+Math.random()*.004,
+          active:Math.random()<.3});}};
+    resize();window.addEventListener("resize",resize);
+    let tick=0;
+    const addPulse=()=>{if(nodes.length<2)return;const a=Math.floor(Math.random()*nodes.length);let b=a;while(b===a)b=Math.floor(Math.random()*nodes.length);
+      const na=nodes[a],nb=nodes[b];const dx=nb.x-na.x,dy=nb.y-na.y;if(Math.sqrt(dx*dx+dy*dy)<200)pulses.push({ax:na.x,ay:na.y,bx:nb.x,by:nb.y,t:0,speed:.015+Math.random()*.01});};
+    const draw=()=>{
+      ctx.clearRect(0,0,w,h);tick++;
+      // Subtle grid
+      ctx.strokeStyle="rgba(120,100,255,.02)";ctx.lineWidth=.5;
+      for(let x=0;x<w;x+=90){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+      for(let y=0;y<h;y+=90){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+      // Move nodes
+      nodes.forEach(n=>{n.phase+=n.speed;n.x=n.bx+Math.sin(n.phase)*12+Math.sin(n.phase*.7)*6;n.y=n.by+Math.cos(n.phase*.8)*10+Math.cos(n.phase*.5)*5;});
+      // Draw connections
+      for(let i=0;i<nodes.length;i++){const a=nodes[i];for(let j=i+1;j<nodes.length;j++){const b=nodes[j];const dx=b.x-a.x,dy=b.y-a.y,dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<160){const alpha=Math.pow(1-dist/160,1.5)*.12;ctx.strokeStyle=`rgba(120,100,255,${alpha})`;ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}}}
+      // Draw nodes
+      nodes.forEach(n=>{const glow=n.active?(.4+Math.sin(tick*.02+n.phase)*.3):.15;
+        ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=`rgba(120,100,255,${glow})`;ctx.fill();
+        if(n.active){ctx.beginPath();ctx.arc(n.x,n.y,n.r*4,0,Math.PI*2);
+          const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*4);g.addColorStop(0,`rgba(120,100,255,${glow*.3})`);g.addColorStop(1,"transparent");ctx.fillStyle=g;ctx.fill();}});
+      // Pulses
+      if(tick%60===0)addPulse();
+      for(let i=pulses.length-1;i>=0;i--){const p=pulses[i];p.t+=p.speed;if(p.t>1){pulses.splice(i,1);continue;}
+        const x=p.ax+(p.bx-p.ax)*p.t;const y=p.ay+(p.by-p.ay)*p.t;const alpha=Math.sin(p.t*Math.PI)*.8;
+        ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);
+        const g=ctx.createRadialGradient(x,y,0,x,y,8);g.addColorStop(0,`rgba(80,200,170,${alpha})`);g.addColorStop(1,"transparent");ctx.fillStyle=g;ctx.fill();
+        ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fillStyle=`rgba(80,200,170,${alpha})`;ctx.fill();
+        // Trail
+        for(let t=1;t<=4;t++){const tt=Math.max(0,p.t-t*.015);const tx=p.ax+(p.bx-p.ax)*tt;const ty=p.ay+(p.by-p.ay)*tt;
+          ctx.beginPath();ctx.arc(tx,ty,1,0,Math.PI*2);ctx.fillStyle=`rgba(80,200,170,${alpha*(1-t/5)*.4})`;ctx.fill();}}
+      // Floating data particles
+      for(let i=0;i<5;i++){const px=(tick*(.2+i*.15)+i*200)%w;const py=h*.2+Math.sin(tick*.008+i*1.5)*h*.3;
+        ctx.fillStyle=`rgba(${i%2===0?'120,100,255':'80,200,170'},${.06+Math.sin(tick*.01+i)*.04})`;
+        ctx.beginPath();ctx.arc(px,py,1,0,Math.PI*2);ctx.fill();}
+      raf=requestAnimationFrame(draw);};
+    draw();return()=>{cancelAnimationFrame(raf);window.removeEventListener("resize",resize);};
+  },[accentColor]);
+  return e("canvas",{ref,style:{position:"fixed",inset:0,pointerEvents:"none",zIndex:0}});
+}
+
+// === COMPONENTS ===
+function AnimNum({value,prefix,suffix}){prefix=prefix||"";suffix=suffix||"";const[d,setD]=useState(0);const ref=useRef();useEffect(()=>{let s=d;const diff=value-s;if(Math.abs(diff)<.5){setD(value);return;}const t0=performance.now();const tick=now=>{const p=Math.min(1,(now-t0)/700);setD(s+diff*(1-Math.pow(1-p,3)));if(p<1)ref.current=requestAnimationFrame(tick);};ref.current=requestAnimationFrame(tick);return()=>cancelAnimationFrame(ref.current);},[value]);return e("span",null,prefix+Math.round(d).toLocaleString()+suffix);}
+
+function Spark({data,color,w,h}){w=w||130;h=h||38;const[p,setP]=useState(0);useEffect(()=>{const t0=performance.now();let r;const t=now=>{setP(Math.min(1,(now-t0)/900));if(p<1)r=requestAnimationFrame(t);};r=requestAnimationFrame(t);return()=>cancelAnimationFrame(r);},[data]);const max=Math.max(...data),min=Math.min(...data),range=max-min||1;const pts=data.map((v,i)=>[(i/(data.length-1))*w,h-4-((v-min)/range)*(h-8)]);const vc=Math.ceil(p*pts.length),vis=pts.slice(0,vc);const line=vis.map(q=>q.join(",")).join(" ");const area=vis.length>1?"M"+vis[0][0]+","+h+" L"+vis.map(q=>q.join(",")).join(" L")+" L"+vis[vis.length-1][0]+","+h+" Z":"";return e("svg",{width:w,height:h,style:{display:"block"}},area&&e("path",{d:area,fill:color,opacity:".1"}),e("polyline",{points:line,fill:"none",stroke:color,strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round"}),vis.length>0&&e("circle",{cx:vis[vis.length-1][0],cy:vis[vis.length-1][1],r:"3",fill:color},e("animate",{attributeName:"r",values:"3;5;3",dur:"2s",repeatCount:"indefinite"})));}
+
+function Dot({color,sz}){sz=sz||8;return e("span",{style:{display:"inline-block",width:sz,height:sz,borderRadius:"50%",background:color,verticalAlign:"middle"}},e("span",{style:{display:"block",width:sz,height:sz,borderRadius:"50%",background:color,animation:"pulse 2s ease-in-out infinite"}}));}
+
+function Ticker({items}){const[o,setO]=useState(0);useEffect(()=>{const iv=setInterval(()=>setO(p=>p+1),3200);return()=>clearInterval(iv);},[]);const c=items[o%items.length];return e("div",{style:{overflow:"hidden",height:22}},e("div",{key:o,style:{animation:"slideUp .4s ease-out",fontSize:12,color:"#666"}},e(Dot,{color:c.color,sz:6})," ",e("span",{style:{fontWeight:500,color:"#aaa",marginLeft:4}},c.skill)," ",c.text));}
+
+// === MAIN APP ===
+function App(){
+const[ind,setInd]=useState("Software Engineering");const[tab,setTab]=useState("overview");const[expanded,setExpanded]=useState(null);const[search,setSearch]=useState("");const[liveCount,setLiveCount]=useState(147832);const[mySkills,setMySkills]=useState([]);const[skillInput,setSkillInput]=useState("");
+const d=DATA[ind],c=R[d.color];
+useEffect(()=>{const iv=setInterval(()=>setLiveCount(p=>p+Math.floor(Math.random()*12)+1),2800);return()=>clearInterval(iv);},[]);
+useEffect(()=>{setExpanded(null);setSearch("");},[ind,tab]);
+const allRising=useMemo(()=>Object.entries(DATA).flatMap(([k,v])=>v.rising.map(s=>({...s,ind:k,clr:R[v.color][600]}))),[]);
+const topN=useMemo(()=>[...allRising].sort((a,b)=>b.growth-a.growth).slice(0,10),[]);
+const totalSkills=useMemo(()=>Object.values(DATA).reduce((s,v)=>s+v.rising.length+v.declining.length+v.emerging.length,0),[]);
+const tickerItems=useMemo(()=>{const items=[];Object.entries(DATA).forEach(([k,v])=>{v.rising.slice(0,2).forEach(s=>items.push({skill:s.skill,text:"+"+s.growth+"% in "+k,color:R[v.color][400]}));});return items.sort(()=>Math.random()-.5);},[]);
+const filtered=useMemo(()=>{const list=tab==="declining"?d.declining:d.rising;return search?list.filter(s=>s.skill.toLowerCase().includes(search.toLowerCase())):list;},[d,tab,search]);
+const addSkill=(s)=>{if(s&&!mySkills.includes(s)){setMySkills([...mySkills,s]);setSkillInput("");}};
+const allSkillNames=useMemo(()=>{const s=new Set();Object.values(DATA).forEach(v=>{v.rising.forEach(r=>{s.add(r.skill);(r.tags||[]).forEach(t=>s.add(t));});v.declining.forEach(r=>s.add(r.skill));});return[...s].sort();},[]);
+const suggestions=useMemo(()=>skillInput?allSkillNames.filter(s=>s.toLowerCase().includes(skillInput.toLowerCase())&&!mySkills.includes(s)).slice(0,5):[],[skillInput,allSkillNames,mySkills]);
+const gapAnalysis=useMemo(()=>{if(!mySkills.length)return null;const ml=mySkills.map(s=>s.toLowerCase());const matched=d.rising.filter(s=>ml.some(m=>s.skill.toLowerCase().includes(m)||m.includes(s.skill.toLowerCase())));const gaps=d.rising.filter(s=>!ml.some(m=>s.skill.toLowerCase().includes(m)||m.includes(s.skill.toLowerCase()))).sort((a,b)=>b.growth*b.demand-a.growth*a.demand).slice(0,5);const score=Math.min(100,Math.round((matched.length/Math.max(1,d.rising.length))*100+mySkills.length*3));return{matched,gaps,score,declining:d.declining.filter(s=>ml.some(m=>s.skill.toLowerCase().includes(m)))};},[mySkills,d]);
+const tabs=[["overview","Overview"],["rising","Rising"],["declining","Declining"],["emerging","Emerging"],["leaderboard","Global top 10"],["gap","My skill gaps"]];
+
+return e("div",{style:{position:"relative",minHeight:"100vh",padding:"0 24px 40px"}},
+  e(NeuralBg,{accentColor:c[400]}),
+  e("div",{style:{position:"relative",zIndex:1,maxWidth:920,margin:"0 auto"}},
+
+    // Header
+    e("div",{style:{padding:"28px 0 18px",borderBottom:"1px solid rgba(120,100,255,.12)"}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}},
+        e("div",null,
+          e("div",{style:{fontSize:10,fontWeight:600,letterSpacing:2,color:c[400],textTransform:"uppercase",marginBottom:6}},"AI-powered career intelligence"),
+          e("div",{style:{fontSize:26,fontWeight:700,background:"linear-gradient(135deg, #e8e8e8 0%, "+c[400]+" 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},"Skill Gap Detector"),
+          e("div",{style:{fontSize:12,color:"#555",marginTop:4}},e(AnimNum,{value:liveCount})," postings analyzed across ",Object.keys(DATA).length," industries")),
+        e("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+          e("span",{style:{padding:"5px 14px",borderRadius:20,background:"rgba(80,200,170,.1)",border:"1px solid rgba(80,200,170,.2)",color:"#5DCAA5",fontSize:11,fontWeight:500,display:"flex",alignItems:"center",gap:5}},e(Dot,{color:"#5DCAA5",sz:6}),"Live"),
+          e("span",{style:{padding:"5px 14px",borderRadius:20,background:c[50],border:"1px solid rgba(120,100,255,.15)",color:c[800],fontSize:11,fontWeight:500}},totalSkills+" skills"))),
+      e("div",{style:{marginTop:12}},e(Ticker,{items:tickerItems}))),
+
+    // Industry pills
+    e("div",{style:{display:"flex",gap:6,flexWrap:"wrap",margin:"18px 0"}},
+      Object.entries(DATA).map(([n,v])=>{const cl=R[v.color];const a=ind===n;return e("button",{key:n,onClick:()=>{setInd(n);setTab("overview");},style:{padding:"7px 14px",borderRadius:20,fontSize:11,fontWeight:500,cursor:"pointer",border:a?"1px solid "+cl[400]:"1px solid rgba(255,255,255,.08)",background:a?"rgba(120,100,255,.1)":"transparent",color:a?cl[800]:"#777",transition:"all .25s",display:"flex",alignItems:"center",gap:6,backdropFilter:"blur(4px)"}},e("span",{style:{width:7,height:7,borderRadius:"50%",background:cl[400],boxShadow:a?"0 0 8px "+cl[400]:"none"}}),n);})),
+
+    // Tabs
+    e("div",{style:{display:"flex",gap:0,borderBottom:"1px solid rgba(120,100,255,.1)",marginBottom:16,overflowX:"auto"}},
+      tabs.map(([k,l])=>e("button",{key:k,onClick:()=>setTab(k),style:{padding:"10px 18px",fontSize:12,cursor:"pointer",border:"none",background:"transparent",fontWeight:tab===k?600:400,color:tab===k?"#e8e8e8":"#555",position:"relative",whiteSpace:"nowrap",transition:"all .2s"}},l,k==="gap"&&mySkills.length>0&&e("span",{style:{marginLeft:4,background:R.coral[400],color:"#fff",fontSize:9,padding:"1px 6px",borderRadius:8}},mySkills.length),e("span",{style:{position:"absolute",bottom:0,left:0,right:0,height:2,background:tab===k?"linear-gradient(90deg,"+c[400]+","+R.teal[400]+")":"transparent",borderRadius:"2px 2px 0 0",transition:"all .3s"}})))),
+
+    // OVERVIEW
+    tab==="overview"&&e("div",{style:{animation:"fadeIn .4s ease-out"}},
+      e("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10,marginBottom:20}},
+        [{l:"Fastest growing",v:d.rising[0].skill,s:"+"+d.rising[0].growth+"%",sc:"#5DCAA5"},{l:"Highest demand",v:d.rising.reduce((a,b)=>a.demand>b.demand?a:b).skill,s:d.rising.reduce((a,b)=>a.demand>b.demand?a:b).demand.toLocaleString()+" jobs",sc:c[400]},{l:"Top salary",v:d.rising.reduce((a,b)=>a.salary>b.salary?a:b).skill,s:"$"+d.rising.reduce((a,b)=>a.salary>b.salary?a:b).salary+"k",sc:R.amber[400]},{l:"Steepest decline",v:d.declining[0].skill,s:d.declining[0].growth+"%",sc:R.red[400]}].map((m,i)=>e("div",{key:i,className:"glass-card",style:{animation:"fadeIn .4s ease-out "+(i*60)+"ms both"}},e("div",{style:{fontSize:10,color:"#555",marginBottom:4,textTransform:"uppercase",letterSpacing:.5}},m.l),e("div",{style:{fontSize:14,fontWeight:600,marginBottom:2}},m.v),e("div",{style:{fontSize:12,color:m.sc,fontWeight:600}},m.s)))),
+      // Top 5 bars
+      e("div",{style:{marginBottom:18}},e("div",{style:{fontSize:12,fontWeight:500,color:"#666",marginBottom:10}},"Top rising skills — ",ind),
+        d.rising.slice(0,5).map((s,i)=>{const mx=d.rising[0].growth;return e("div",{key:s.skill,style:{display:"flex",alignItems:"center",gap:10,marginBottom:8,animation:"fadeIn .4s ease-out "+(i*70)+"ms both"}},
+          e("span",{style:{fontSize:12,color:"#777",minWidth:130,textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.skill),
+          e("div",{style:{flex:1,height:28,background:"rgba(120,100,255,.04)",borderRadius:6,overflow:"hidden",position:"relative",border:"1px solid rgba(120,100,255,.06)"}},
+            e("div",{style:{height:"100%",borderRadius:6,background:"linear-gradient(90deg,"+c[600]+"cc,"+c[400]+"44)",width:(s.growth/mx)*100+"%",transition:"width 1s cubic-bezier(.4,0,.2,1)",transitionDelay:(i*100)+"ms"}}),
+            e("span",{style:{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:11,fontWeight:500}},"+"+s.growth+"% — "+s.demand.toLocaleString()+" jobs — $"+s.salary+"k")));})),
+      // Insight
+      e("div",{className:"glow-border",style:{borderRadius:12}},
+        e("div",{style:{padding:"16px 18px",background:"rgba(12,12,30,.8)",borderRadius:12,backdropFilter:"blur(8px)"}},
+          e("div",{style:{display:"flex",alignItems:"center",gap:6,marginBottom:6}},e(Dot,{color:c[400],sz:6}),e("span",{style:{fontSize:11,fontWeight:600,color:c[800],letterSpacing:.5}},"AI INSIGHT — LIVE")),
+          e("div",{style:{fontSize:13,color:"#bbb",lineHeight:1.7}},INSIGHTS[ind])))),
+
+    // RISING / DECLINING
+    (tab==="rising"||tab==="declining")&&e("div",{style:{animation:"fadeIn .3s ease-out"}},
+      e("input",{type:"text",placeholder:"Filter skills...",value:search,onChange:ev=>setSearch(ev.target.value),style:{marginBottom:12}}),
+      e("div",{className:"glass",style:{borderRadius:12,overflow:"hidden"}},
+        e("div",{style:{display:"grid",gridTemplateColumns:"1.4fr 130px 65px 75px 70px",padding:"8px 14px",gap:6,background:"rgba(120,100,255,.03)",fontSize:10,color:"#555",fontWeight:600,textTransform:"uppercase",letterSpacing:.5}},e("span",null,"Skill"),e("span",null,"Trend"),e("span",{style:{textAlign:"right"}},"YoY"),e("span",{style:{textAlign:"right"}},"Demand"),e("span",{style:{textAlign:"right"}},"Salary")),
+        filtered.map((s,i)=>{const isR=s.growth>0;const clr=isR?"#5DCAA5":"#F09595";const isE=expanded===s.skill;return e("div",{key:s.skill,style:{borderTop:"1px solid rgba(120,100,255,.06)",animation:"fadeIn .3s ease-out "+(i*35)+"ms both"}},
+          e("div",{className:"sr",onClick:()=>setExpanded(isE?null:s.skill),style:{display:"grid",gridTemplateColumns:"1.4fr 130px 65px 75px 70px",padding:"10px 14px",gap:6,alignItems:"center",background:isE?"rgba(120,100,255,.04)":"transparent"}},
+            e("div",{style:{display:"flex",alignItems:"center",gap:7}},e("span",{style:{width:5,height:5,borderRadius:"50%",background:clr,boxShadow:"0 0 6px "+clr,flexShrink:0}}),e("span",{style:{fontSize:13,fontWeight:500}},s.skill)),
+            e(Spark,{data:s.postings,color:clr}),
+            e("span",{style:{fontSize:12,fontWeight:600,color:clr,textAlign:"right"}},(s.growth>0?"+":"")+s.growth+"%"),
+            e("span",{style:{fontSize:11,color:"#777",textAlign:"right"}},s.demand.toLocaleString()),
+            e("span",{style:{fontSize:11,color:"#777",textAlign:"right"}},"$"+s.salary+"k")),
+          isE&&e("div",{style:{padding:"2px 14px 14px",background:"rgba(120,100,255,.03)",animation:"fadeIn .2s ease-out"}},
+            e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,marginBottom:10}},
+              [{l:"Monthly avg",v:(isR?"+":"")+(s.growth/12).toFixed(1)+"%"},{l:"Mar postings",v:s.postings[11]},{l:"Apr postings",v:s.postings[0]},{l:"12-mo delta",v:(isR?"+":"")+(s.postings[11]-s.postings[0])}].map((m,j)=>e("div",{key:j,style:{background:"rgba(8,8,20,.6)",borderRadius:8,padding:"7px 10px",border:"1px solid rgba(120,100,255,.06)"}},e("div",{style:{fontSize:9,color:"#555",marginBottom:1}},m.l),e("div",{style:{fontSize:15,fontWeight:500}},typeof m.v==="number"?m.v.toLocaleString():m.v)))),
+            s.tags&&e("div",{style:{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}},s.tags.map(t=>e("span",{key:t,style:{padding:"2px 8px",borderRadius:12,background:c[50],color:c[800],fontSize:10,border:"1px solid rgba(120,100,255,.1)"}},t))),
+            e("div",{style:{display:"flex",alignItems:"flex-end",height:70,gap:2}},s.postings.map((v,j)=>{const mx=Math.max(...s.postings);return e("div",{key:j,style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:1}},e("span",{style:{fontSize:8,color:"#444"}},v),e("div",{style:{width:"100%",borderRadius:"2px 2px 0 0",background:clr,opacity:.25+.75*(v/mx),height:(v/mx)*52+"px",transition:"height .4s ease-out",boxShadow:"0 0 4px "+clr+"33"}}));})),
+            e("div",{style:{display:"flex",justifyContent:"space-between",fontSize:9,color:"#444",marginTop:3}},MO.map(m=>e("span",{key:m},m))),
+            COURSES[s.skill]&&e("div",{style:{marginTop:10,padding:"8px 12px",background:"rgba(55,138,221,.06)",borderRadius:8,border:"1px solid rgba(55,138,221,.12)"}},e("div",{style:{fontSize:10,fontWeight:600,color:R.blue[800],marginBottom:4}},"RECOMMENDED LEARNING"),COURSES[s.skill].map(cr=>e("div",{key:cr,style:{fontSize:11,color:R.blue[200],marginBottom:2}},cr)))));}),
+        filtered.length===0&&e("div",{style:{padding:24,textAlign:"center",color:"#555",fontSize:12}},"No matching skills"))),
+
+    // EMERGING
+    tab==="emerging"&&e("div",{style:{display:"flex",flexDirection:"column",gap:10,animation:"fadeIn .3s ease-out"}},
+      d.emerging.map((em,i)=>{const cl=em.confidence>.85?"teal":em.confidence>.7?"amber":"purple";return e("div",{key:em.skill,className:"glass",style:{borderRadius:12,padding:"16px 18px",animation:"fadeIn .4s ease-out "+(i*80)+"ms both"}},
+        e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}},e("span",{style:{fontWeight:600,fontSize:15}},em.skill),e("span",{style:{padding:"3px 10px",borderRadius:12,background:R[cl][50],color:R[cl][800],fontSize:11,fontWeight:600,border:"1px solid rgba(120,100,255,.1)"}},Math.round(em.confidence*100)+"%")),
+        e("div",{style:{fontSize:12,color:"#888",marginBottom:10}},em.desc),
+        e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},e("span",{style:{fontSize:11,color:"#555"}},"ETA: "+em.eta),e("div",{style:{width:120,height:5,background:"rgba(120,100,255,.06)",borderRadius:3,overflow:"hidden"}},e("div",{style:{height:"100%",width:em.confidence*100+"%",borderRadius:3,background:"linear-gradient(90deg,"+R[cl][600]+","+R[cl][400]+")",boxShadow:"0 0 8px "+R[cl][400]+"44"}}))));})),
+
+    // LEADERBOARD
+    tab==="leaderboard"&&e("div",{className:"glass",style:{borderRadius:12,overflow:"hidden",animation:"fadeIn .3s ease-out"}},
+      e("div",{style:{display:"grid",gridTemplateColumns:"30px 1.3fr 1fr 130px 65px",padding:"8px 14px",gap:6,background:"rgba(120,100,255,.03)",fontSize:10,color:"#555",fontWeight:600,textTransform:"uppercase"}},e("span",null,"#"),e("span",null,"Skill"),e("span",null,"Industry"),e("span",null,"Trend"),e("span",{style:{textAlign:"right"}},"Growth")),
+      topN.map((s,i)=>e("div",{key:s.skill+s.ind,style:{display:"grid",gridTemplateColumns:"30px 1.3fr 1fr 130px 65px",padding:"10px 14px",gap:6,alignItems:"center",borderTop:"1px solid rgba(120,100,255,.06)",animation:"fadeIn .3s ease-out "+(i*45)+"ms both"}},
+        e("span",{style:{fontSize:16,fontWeight:700,color:i<3?R.amber[200]:"#444",textShadow:i<3?"0 0 10px rgba(250,200,100,.2)":"none"}},i+1),
+        e("span",{style:{fontSize:13,fontWeight:500,display:"flex",alignItems:"center",gap:6}},e("span",{style:{width:6,height:6,borderRadius:"50%",background:s.clr,boxShadow:"0 0 6px "+s.clr}}),s.skill),
+        e("span",{style:{fontSize:11,color:"#777"}},s.ind),
+        e(Spark,{data:s.postings,color:s.clr,w:120,h:28}),
+        e("span",{style:{fontSize:13,fontWeight:600,color:"#5DCAA5",textAlign:"right"}},"+"+s.growth+"%")))),
+
+    // GAP ANALYZER
+    tab==="gap"&&e("div",{style:{animation:"fadeIn .3s ease-out"}},
+      e("div",{className:"glass",style:{borderRadius:12,padding:"18px 20px",marginBottom:16}},
+        e("div",{style:{fontSize:15,fontWeight:600,marginBottom:4}},"Your skill profile"),
+        e("div",{style:{fontSize:12,color:"#777",marginBottom:14}},"Add your skills for personalized gap analysis in ",e("span",{style:{color:c[400],fontWeight:500}},ind)),
+        e("div",{style:{position:"relative",marginBottom:10}},
+          e("input",{type:"text",placeholder:"Type a skill (e.g. Python, React, AWS)...",value:skillInput,onChange:ev=>setSkillInput(ev.target.value),onKeyDown:ev=>{if(ev.key==="Enter")addSkill(skillInput.trim());}}),
+          suggestions.length>0&&e("div",{style:{position:"absolute",top:"100%",left:0,right:0,background:"rgba(15,15,30,.95)",border:"1px solid rgba(120,100,255,.2)",borderRadius:8,padding:4,zIndex:10,marginTop:2,backdropFilter:"blur(12px)"}},suggestions.map(s=>e("div",{key:s,className:"sug",onClick:()=>addSkill(s)},s)))),
+        mySkills.length>0&&e("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},mySkills.map(s=>e("span",{key:s,className:"chip",onClick:()=>setMySkills(mySkills.filter(x=>x!==s)),style:{background:c[50],color:c[800],border:"1px solid rgba(120,100,255,.15)"}},s," ",e("span",{style:{opacity:.5}},"x"))))),
+      gapAnalysis&&e(React.Fragment,null,
+        e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}},
+          e("div",{className:"glass-card",style:{textAlign:"center",border:"1px solid "+(gapAnalysis.score>=70?"rgba(80,200,170,.2)":gapAnalysis.score>=40?"rgba(200,160,50,.2)":"rgba(200,80,80,.2)")}},e("div",{style:{fontSize:10,color:"#666",marginBottom:4}},"Readiness"),e("div",{style:{fontSize:36,fontWeight:700,color:gapAnalysis.score>=70?"#5DCAA5":gapAnalysis.score>=40?"#EF9F27":"#F09595",textShadow:"0 0 20px "+(gapAnalysis.score>=70?"rgba(80,200,170,.3)":"rgba(200,80,80,.3)")}},e(AnimNum,{value:gapAnalysis.score}),"%")),
+          e("div",{className:"glass-card",style:{textAlign:"center"}},e("div",{style:{fontSize:10,color:"#666",marginBottom:4}},"Matched"),e("div",{style:{fontSize:36,fontWeight:700,color:"#5DCAA5"}},gapAnalysis.matched.length)),
+          e("div",{className:"glass-card",style:{textAlign:"center"}},e("div",{style:{fontSize:10,color:"#666",marginBottom:4}},"At-risk"),e("div",{style:{fontSize:36,fontWeight:700,color:gapAnalysis.declining.length?"#F09595":"#e8e8e8"}},gapAnalysis.declining.length))),
+        gapAnalysis.gaps.length>0&&e("div",{style:{marginBottom:16}},e("div",{style:{fontSize:13,fontWeight:600,marginBottom:10}},"Priority skills to learn"),
+          gapAnalysis.gaps.map((g,i)=>e("div",{key:g.skill,className:"glass",style:{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderRadius:10,marginBottom:8,animation:"fadeIn .3s ease-out "+(i*70)+"ms both"}},
+            e("span",{style:{fontSize:18,fontWeight:700,color:R.amber[200],minWidth:24,textShadow:"0 0 10px rgba(250,200,100,.2)"}},i+1),
+            e("div",{style:{flex:1}},e("div",{style:{fontSize:13,fontWeight:600}},g.skill),e("div",{style:{fontSize:11,color:"#777"}},"+"+g.growth+"% — "+g.demand.toLocaleString()+" jobs — $"+g.salary+"k"),COURSES[g.skill]&&e("div",{style:{fontSize:11,color:R.blue[200],marginTop:2}},COURSES[g.skill][0])),
+            e("span",{style:{padding:"4px 10px",borderRadius:12,background:"rgba(216,90,48,.1)",color:R.coral[200],fontSize:10,fontWeight:600,border:"1px solid rgba(216,90,48,.2)"}},"Gap"))))),
+      !gapAnalysis&&e("div",{style:{textAlign:"center",padding:"50px 20px",color:"#444"}},
+        e("div",{style:{fontSize:40,marginBottom:8,animation:"float 3s ease-in-out infinite"}},"^"),
+        e("div",{style:{fontSize:14,color:"#666"}},"Add your skills above to get started"))),
+
+    // Footer
+    e("div",{style:{marginTop:28,display:"flex",justifyContent:"space-between",fontSize:10,color:"#333",flexWrap:"wrap",gap:6}},
+      e("span",null,"Pipeline: BERTopic + spaCy entity ruler + Mann-Kendall + Prophet"),
+      e("span",null,e(AnimNum,{value:liveCount})," postings — ",Object.keys(DATA).length," industries — ",totalSkills," skills")))
+);}
+
+ReactDOM.render(e(App),document.getElementById("root"));
+</script>
+</body>
+</html>
