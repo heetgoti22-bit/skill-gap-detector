@@ -11,3 +11,5 @@ data/eval/eval_results.json
 dist/
 build/
 .pytest_cache/
+data/skillgap.db-shm
+data/skillgap.db-wal
